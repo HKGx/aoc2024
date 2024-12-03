@@ -26,12 +26,6 @@ fn parseMul(input: []const u8, index: *usize, do: bool) !i32 {
     return left * right;
 }
 
-const Find = union(enum) {
-    do: usize,
-    dont: usize,
-    mul: usize,
-};
-
 pub fn part1(_: std.mem.Allocator, input: []const u8) !i32 {
     var sum: i32 = 0;
     var last_index: usize = 0;
@@ -42,6 +36,12 @@ pub fn part1(_: std.mem.Allocator, input: []const u8) !i32 {
     }
     return sum;
 }
+
+const Find = union(enum) {
+    do: usize,
+    dont: usize,
+    mul: usize,
+};
 
 fn findNearest(input: []const u8, index: usize) ?Find {
     const max = std.math.maxInt(usize);
