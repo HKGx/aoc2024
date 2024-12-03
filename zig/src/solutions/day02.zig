@@ -38,15 +38,13 @@ pub fn part1(allocator: std.mem.Allocator, input: []const u8) !i32 {
 fn isValid(levels: []const i32) bool {
     var asc = true;
     var desc = true;
-    var valid = true;
     var previousLevel: i32 = levels[0];
     for (levels[1..]) |level| {
-        if (asc and level < previousLevel) asc = false;
-        if (desc and level > previousLevel) desc = false;
-        if (!asc and !desc) valid = false;
         const change = @abs(level - previousLevel);
-        if (change < 1 or change > 3) valid = false;
-        if (!valid) return false;
+        if (change < 1 or change > 3) return false;
+        if (level < previousLevel) asc = false;
+        if (level > previousLevel) desc = false;
+        if (!asc and !desc) return false;
         previousLevel = level;
     }
     return true;
@@ -54,23 +52,17 @@ fn isValid(levels: []const i32) bool {
 
 const RemoveOneIterator = struct {
     original: []const i32,
-    new: *[]i32,
+    new: []i32,
     index: usize = 0,
 
     fn next(self: *RemoveOneIterator) ?[]i32 {
-        if (self.index < self.original.len) {
-            for (0..self.new.len) |j| {
-                if (j < self.index) {
-                    self.new.*[j] = self.original[j];
-                } else {
-                    self.new.*[j] = self.original[j + 1];
-                }
-            }
-            self.index += 1;
-            return self.new.*;
-        }
+        if (self.index >= self.original.len) return null;
 
-        return null;
+        @memcpy(self.new[0..self.index], self.original[0..self.index]);
+        @memcpy(self.new[self.index..], self.original[self.index + 1 ..]);
+
+        self.index += 1;
+        return self.new;
     }
 };
 
@@ -87,14 +79,10 @@ pub fn part2(allocator: std.mem.Allocator, input: []const u8) !i32 {
             continue;
         }
 
-        var new = try allocator.alloc(i32, levels.items.len - 1);
+        const new = try allocator.alloc(i32, levels.items.len - 1);
         defer allocator.free(new);
 
-        var iter = RemoveOneIterator{
-            .original = levels.items,
-            .new = &new,
-        };
-
+        var iter = RemoveOneIterator{ .original = levels.items, .new = new };
         while (iter.next()) |removedOne| {
             if (isValid(removedOne)) {
                 total_valid += 1;
