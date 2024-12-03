@@ -11,29 +11,76 @@ fn parseInt(input: []const u8, index: *usize) !i32 {
     return try std.fmt.parseInt(i32, input[startIdx..index.*], 10);
 }
 
+fn parseMul(input: []const u8, index: *usize, do: bool) !i32 {
+    index.* += "mul".len;
+    if (!do) return error.NotDo;
+
+    if (input[index.*] != '(') return error.UnexpectedChar;
+    index.* += 1;
+    const left = try parseInt(input, index);
+    if (input[index.*] != ',') return error.UnexpectedChar;
+    index.* += 1;
+    const right = try parseInt(input, index);
+    if (input[index.*] != ')') return error.UnexpectedChar;
+
+    return left * right;
+}
+
+const Find = union(enum) {
+    do: usize,
+    dont: usize,
+    mul: usize,
+};
+
 pub fn part1(_: std.mem.Allocator, input: []const u8) !i32 {
     var sum: i32 = 0;
     var last_index: usize = 0;
     while (std.mem.indexOfPos(u8, input, last_index, "mul")) |idx| {
-        last_index = idx + "mul".len;
-
-        if (input[last_index] != '(') continue;
-        last_index += 1;
-        const left = try parseInt(input, &last_index);
-        if (input[last_index] != ',') continue;
-        last_index += 1;
-        const right = try parseInt(input, &last_index);
-        if (input[last_index] != ')') continue;
-
-        sum += left * right;
+        last_index = idx;
+        const result = parseMul(input, &last_index, true) catch continue;
+        sum += result;
     }
     return sum;
 }
 
-pub fn part2(allocator: std.mem.Allocator, input: []const u8) !i32 {
-    _ = allocator;
-    _ = input;
-    return error.Unimplemented;
+fn findNearest(input: []const u8, index: usize) ?Find {
+    const max = std.math.maxInt(usize);
+    const dont = std.mem.indexOfPos(u8, input, index, "don't") orelse max;
+    const do = std.mem.indexOfPos(u8, input, index, "do") orelse max;
+    const mul = std.mem.indexOfPos(u8, input, index, "mul") orelse max;
+
+    const min = @min(mul, @min(dont, do));
+    if (min == max) return null;
+
+    if (min == dont) return Find{ .dont = dont };
+    if (min == do) return Find{ .do = do };
+    return Find{ .mul = mul };
+}
+
+pub fn part2(_: std.mem.Allocator, input: []const u8) !i32 {
+    var sum: i32 = 0;
+    var last_index: usize = 0;
+    var do = true;
+
+    while (findNearest(input, last_index)) |find| {
+        switch (find) {
+            .dont => |idx| {
+                last_index = idx + "dont".len;
+                do = false;
+            },
+            .do => |idx| {
+                last_index = idx + "do".len;
+                do = true;
+            },
+            .mul => |idx| {
+                last_index = idx;
+                const result = parseMul(input, &last_index, do) catch continue;
+                sum += result;
+            },
+        }
+    }
+
+    return sum;
 }
 
 pub fn main() !void {
@@ -68,5 +115,5 @@ test part1 {
 test part2 {
     const example = @embedFile("./data/day03.part2.example.txt");
     const result = try part2(std.testing.allocator, example);
-    try std.testing.expectEqual(0, result);
+    try std.testing.expectEqual(48, result);
 }
