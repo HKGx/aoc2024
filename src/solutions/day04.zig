@@ -169,5 +169,5 @@ test part1 {
 
 test part2 {
     const result = try part2(std.testing.allocator, example);
-    try std.testing.expectEqual(0, result);
+    try std.testing.expectEqual(-1, result);
 }
