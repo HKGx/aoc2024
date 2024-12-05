@@ -1,4 +1,5 @@
 const std = @import("std");
+const util = @import("util.zig");
 const ArrayList = std.ArrayList;
 
 const example = @embedFile("data/day$$.example.txt");
